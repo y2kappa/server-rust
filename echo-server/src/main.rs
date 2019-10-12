@@ -26,6 +26,8 @@ fn main() {
     // the stream with the `for_each` combinator method
     let server = listener.incoming().for_each(|socket| {
 
+        println!("Received connection {:?}", socket.local_addr());
+
         // split the socket stream into readable and writable parts
         // (tokio::io::ReadHalf<tokio::net::TcpStream>,
         // tokio::io::WriteHalf<tokio::net::TcpStream>)
