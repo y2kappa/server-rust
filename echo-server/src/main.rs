@@ -4,13 +4,23 @@ use tokio::io;
 use tokio::net::TcpListener;
 use tokio::prelude::*;
 
+use serde_json::{Result, Value};
+use std::fs::File;
+use std::io::Read;
+
 fn main() {
 
-    let host = "127.0.0.1";
-    let port = "6123";
+    let mut config_file = File::open("src/config.json").unwrap();
+    let mut config_data = String::new();
+    config_file.read_to_string(&mut config_data).unwrap();
+    let config_json : Value = serde_json::from_str(&config_data).unwrap();
+
+    let host = String::from(config_json["host"].as_str().unwrap());
+    let port = String::from(config_json["port"].as_str().unwrap());
+
+    println!("Listening to {}:{}", host, port);
 
     let addr = format!("{}:{}", host, port).parse().unwrap();
-
     let listener = TcpListener::bind(&addr).unwrap();
 
     // Here we convert the `TcpListener` to a stream of incoming connections
