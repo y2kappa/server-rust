@@ -18,8 +18,6 @@ fn main() {
     let host = String::from(config_json["host"].as_str().unwrap());
     let port = String::from(config_json["port"].as_str().unwrap());
 
-    println!("Listening to {}:{}", host, port);
-
     let addr = format!("{}:{}", host, port).parse().unwrap();
     let listener = TcpListener::bind(&addr).unwrap();
 
@@ -27,15 +25,37 @@ fn main() {
     // with the `incoming` method. We then define how to process each element in
     // the stream with the `for_each` combinator method
     let server = listener.incoming().for_each(|socket| {
-        // TODO: Process socket
+
+        // split the socket stream into readable and writable parts
+        // (tokio::io::ReadHalf<tokio::net::TcpStream>,
+        // tokio::io::WriteHalf<tokio::net::TcpStream>)
+        let (reader, writer) = socket.split();
+
+        // copy bytes from the reader into the writer
+        let amount = io::copy(reader, writer);
+
+        let msg = amount.then(|result| {
+            match result {
+                Ok((amount, _, _)) => println!("wrote {} bytes", amount),
+                Err(e)             => println!("error: {}", e),
+            }
+
+            Ok(())
+        });
+
+        // spawn the task that handles the client connection socket on to the
+        // tokio runtime. This means each client connection will be handled
+        // concurrently
+        tokio::spawn(msg);
         Ok(())
-    })
+
+        })
     .map_err(|err| {
         // Handle error by printing to STDOUT.
         println!("accept error = {:?}", err);
     });
 
-    println!("server running on localhost:6142");
+    println!("Server running on {}:{}", host, port);
 
     // Start the server
     //
